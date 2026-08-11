@@ -1,0 +1,13 @@
+node_modules/
+*.local
+frontend/dist/
+
+backend/.venv/
+backend/.pytest_cache/
+__pycache__/
+*.pyc
+
+# Playwright artifacts
+frontend/playwright-report/
+frontend/test-results/
+frontend/blob-report/

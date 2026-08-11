@@ -1,0 +1,11 @@
+Metadata-Version: 2.4
+Name: calendar-booking-backend
+Version: 0.1.0
+Summary: Calendar Booking backend (FastAPI), compatible with spec/api.tsp
+Requires-Python: >=3.10
+Requires-Dist: fastapi>=0.110
+Requires-Dist: uvicorn[standard]
+Requires-Dist: pydantic>=2
+Provides-Extra: dev
+Requires-Dist: pytest; extra == "dev"
+Requires-Dist: httpx; extra == "dev"

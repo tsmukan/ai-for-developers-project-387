@@ -1,0 +1,443 @@
+openapi: 3.0.0
+info:
+  title: Calendar Booking
+  version: 0.0.0
+tags: []
+paths:
+  /event-types:
+    get:
+      operationId: PublicEventTypes_listEventTypes
+      description: Get all event types visible to guests
+      parameters: []
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - $ref: '#/components/schemas/EventTypesList'
+                  - $ref: '#/components/schemas/ErrorBody'
+  /event-types/{eventTypeId}/bookings:
+    post:
+      operationId: PublicEventTypes_createBooking
+      description: |-
+        Create a booking on a selected slot.
+
+        Server-side rules:
+        - `endTime` is computed as `startTime + eventType.durationInMinutes`
+        - `startTime` must align to a 30-minute grid (:00 or :30)
+        - `startTime` must fall within today..today+14 days
+        - The resulting [startTime, endTime) range must NOT overlap with any
+        existing booking, regardless of event type.
+      parameters:
+        - name: eventTypeId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+        '201':
+          description: The request has succeeded and a new resource has been created as a result.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Booking'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BookingCreate'
+  /event-types/{eventTypeId}/slots:
+    get:
+      operationId: PublicEventTypes_listSlots
+      description: Get available slots for a specific event type within the booking window (today + 14 days)
+      parameters:
+        - name: eventTypeId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: timezone
+          in: query
+          required: true
+          schema:
+            type: string
+          explode: false
+        - name: dateFrom
+          in: query
+          required: false
+          schema:
+            type: string
+          explode: false
+        - name: dateTo
+          in: query
+          required: false
+          schema:
+            type: string
+          explode: false
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - $ref: '#/components/schemas/SlotsList'
+                  - $ref: '#/components/schemas/ErrorBody'
+  /owner/bookings:
+    get:
+      operationId: Owner_listBookings
+      description: List all upcoming bookings (all event types)
+      parameters: []
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - $ref: '#/components/schemas/BookingsList'
+                  - $ref: '#/components/schemas/ErrorBody'
+  /owner/event-types:
+    get:
+      operationId: Owner_listEventTypes
+      parameters: []
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - $ref: '#/components/schemas/EventTypesList'
+                  - $ref: '#/components/schemas/ErrorBody'
+    post:
+      operationId: Owner_createEventType
+      parameters: []
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+        '201':
+          description: The request has succeeded and a new resource has been created as a result.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventType'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EventTypeCreate'
+  /owner/event-types/{eventTypeId}:
+    get:
+      operationId: Owner_getEventType
+      parameters:
+        - name: eventTypeId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - $ref: '#/components/schemas/EventType'
+                  - $ref: '#/components/schemas/ErrorBody'
+    put:
+      operationId: Owner_updateEventType
+      parameters:
+        - name: eventTypeId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - $ref: '#/components/schemas/EventType'
+                  - $ref: '#/components/schemas/ErrorBody'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EventTypeUpdate'
+    delete:
+      operationId: Owner_deleteEventType
+      parameters:
+        - name: eventTypeId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+        '204':
+          description: 'There is no content to send for this request, but the headers may be useful. '
+  /owner/profile:
+    get:
+      operationId: Owner_getProfile
+      parameters: []
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - $ref: '#/components/schemas/OwnerProfile'
+                  - $ref: '#/components/schemas/ErrorBody'
+  /owner/settings/working-hours:
+    get:
+      operationId: Owner_getWorkingHours
+      parameters: []
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - $ref: '#/components/schemas/WorkingHoursConfig'
+                  - $ref: '#/components/schemas/ErrorBody'
+    put:
+      operationId: Owner_updateWorkingHours
+      parameters: []
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - $ref: '#/components/schemas/WorkingHoursConfig'
+                  - $ref: '#/components/schemas/ErrorBody'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorkingHoursConfig'
+components:
+  schemas:
+    Booking:
+      type: object
+      required:
+        - id
+        - eventTypeId
+        - startTime
+        - endTime
+        - guestName
+        - guestTimezone
+        - createdAt
+      properties:
+        id:
+          type: string
+        eventTypeId:
+          type: string
+        startTime:
+          type: string
+          format: date-time
+        endTime:
+          type: string
+          format: date-time
+        guestName:
+          type: string
+        guestEmail:
+          type: string
+        guestPhone:
+          type: string
+        guestTimezone:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    BookingCreate:
+      type: object
+      required:
+        - startTime
+        - guestName
+        - guestTimezone
+      properties:
+        startTime:
+          type: string
+          format: date-time
+        guestName:
+          type: string
+        guestEmail:
+          type: string
+        guestPhone:
+          type: string
+        guestTimezone:
+          type: string
+    BookingsList:
+      type: object
+      required:
+        - items
+        - total
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Booking'
+        total:
+          type: integer
+          format: int32
+    DayOfWeek:
+      type: number
+      enum:
+        - 0
+        - 1
+        - 2
+        - 3
+        - 4
+        - 5
+        - 6
+    ErrorBody:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+        details:
+          type: string
+    EventType:
+      type: object
+      required:
+        - id
+        - title
+        - description
+        - durationInMinutes
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        durationInMinutes:
+          type: integer
+          format: int32
+    EventTypeCreate:
+      type: object
+      required:
+        - title
+        - description
+        - durationInMinutes
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        durationInMinutes:
+          type: integer
+          format: int32
+          minimum: 1
+    EventTypeUpdate:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        durationInMinutes:
+          type: integer
+          format: int32
+          minimum: 1
+    EventTypesList:
+      type: object
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/EventType'
+    OwnerProfile:
+      type: object
+      required:
+        - name
+        - email
+        - timezone
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+        timezone:
+          type: string
+    Slot:
+      type: object
+      required:
+        - startTime
+        - endTime
+      properties:
+        startTime:
+          type: string
+          format: date-time
+        endTime:
+          type: string
+          format: date-time
+    SlotsList:
+      type: object
+      required:
+        - items
+        - timezone
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Slot'
+        timezone:
+          type: string
+    WorkingHoursConfig:
+      type: object
+      required:
+        - entries
+      properties:
+        entries:
+          type: array
+          items:
+            $ref: '#/components/schemas/WorkingHoursEntry'
+    WorkingHoursEntry:
+      type: object
+      required:
+        - dayOfWeek
+        - startTime
+        - endTime
+        - isAvailable
+      properties:
+        dayOfWeek:
+          $ref: '#/components/schemas/DayOfWeek'
+        startTime:
+          type: string
+        endTime:
+          type: string
+        isAvailable:
+          type: boolean
