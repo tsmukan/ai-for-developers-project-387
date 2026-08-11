@@ -100,10 +100,13 @@ class Storage:
             upcoming.sort(key=lambda b: b["startTime"])
             return upcoming
 
-    def add_booking(self, booking: dict) -> dict:
+    def try_add_booking(self, start: datetime, end: datetime, booking: dict) -> bool:
         with self._lock:
+            for b in self.bookings:
+                if start < b["endTime"] and end > b["startTime"]:
+                    return False
             self.bookings.append(booking)
-            return booking
+            return True
 
     def overlaps(self, start: datetime, end: datetime) -> bool:
         with self._lock:

@@ -230,3 +230,25 @@ def test_unknown_event_type_404(client):
         json={"startTime": "2030-01-01T09:00:00Z", "guestName": "A", "guestTimezone": "UTC"},
     )
     assert res.status_code == 404
+
+
+def test_concurrent_booking_same_slot_creates_exactly_one(client):
+    """Parallel requests for one slot must yield a single booking (no duplicates)."""
+    from concurrent.futures import ThreadPoolExecutor
+
+    et = first_event_type(client)
+    slot = first_slot(client, et["id"])
+    body = {"startTime": slot, "guestName": "Иван", "guestTimezone": TZ}
+
+    def book(i: int):
+        return client.post(
+            f"/event-types/{et['id']}/bookings",
+            json={**body, "guestName": f"Гость-{i}"},
+        )
+
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        responses = list(pool.map(book, range(8)))
+
+    codes = [res.status_code for res in responses]
+    assert codes.count(201) == 1
+    assert all(code == 409 for code in codes if code != 201)

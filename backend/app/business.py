@@ -122,9 +122,6 @@ def create_booking(storage, event_type, body: BookingCreate) -> dict:
     if start < w_start or end > w_end:
         raise BookingError("Встреча выходит за пределы рабочего времени.", 400)
 
-    if storage.overlaps(start, end):
-        raise BookingError("Это время уже занято.", 409)
-
     booking = {
         "id": str(uuid4()),
         "eventTypeId": event_type.id,
@@ -136,5 +133,7 @@ def create_booking(storage, event_type, body: BookingCreate) -> dict:
         "guestTimezone": body.guestTimezone,
         "createdAt": datetime.now(timezone.utc),
     }
-    storage.add_booking(booking)
+    if not storage.try_add_booking(start, end, booking):
+        raise BookingError("Это время уже занято.", 409)
+
     return booking
