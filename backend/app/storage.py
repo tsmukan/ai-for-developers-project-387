@@ -93,15 +93,20 @@ class Storage:
 
     # ── Bookings ───────────────────────────────────────────────────────────
 
+    def _prune_expired(self) -> None:
+        now = self._now()
+        self.bookings = [b for b in self.bookings if b["endTime"] > now]
+
     def list_bookings(self) -> list[dict]:
         with self._lock:
-            now = self._now()
-            upcoming = [b for b in self.bookings if b["endTime"] > now]
+            self._prune_expired()
+            upcoming = list(self.bookings)
             upcoming.sort(key=lambda b: b["startTime"])
             return upcoming
 
     def try_add_booking(self, start: datetime, end: datetime, booking: dict) -> bool:
         with self._lock:
+            self._prune_expired()
             for b in self.bookings:
                 if start < b["endTime"] and end > b["startTime"]:
                     return False
@@ -110,6 +115,7 @@ class Storage:
 
     def overlaps(self, start: datetime, end: datetime) -> bool:
         with self._lock:
+            self._prune_expired()
             return any(
                 start < b["endTime"] and end > b["startTime"] for b in self.bookings
             )

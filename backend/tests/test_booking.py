@@ -232,6 +232,58 @@ def test_unknown_event_type_404(client):
     assert res.status_code == 404
 
 
+def test_expired_bookings_pruned_from_storage(client):
+    """Bookings whose endTime has passed are dropped, not just hidden from the API."""
+    from datetime import timedelta, timezone
+
+    from app.deps import storage
+
+    now = datetime.now(timezone.utc)
+    storage.bookings.append(
+        {
+            "id": "past-1",
+            "eventTypeId": "x",
+            "startTime": now - timedelta(days=2),
+            "endTime": now - timedelta(days=1),
+            "guestName": "Старый",
+            "guestEmail": None,
+            "guestPhone": None,
+            "guestTimezone": TZ,
+            "createdAt": now - timedelta(days=2),
+        }
+    )
+    assert len(storage.bookings) == 1
+
+    assert storage.list_bookings() == []
+    assert storage.bookings == []
+
+
+def test_pruned_booking_does_not_block_new_booking(client):
+    """A past booking is gone from the store, so the same slot is bookable again."""
+    from datetime import timedelta, timezone
+
+    from app.deps import storage
+
+    et = first_event_type(client)
+    slot = first_slot(client, et["id"])
+
+    client.post(
+        f"/event-types/{et['id']}/bookings",
+        json={"startTime": slot, "guestName": "Иван", "guestTimezone": TZ},
+    )
+
+    now = datetime.now(timezone.utc)
+    for b in storage.bookings:
+        b["startTime"] = now - timedelta(days=2)
+        b["endTime"] = now - timedelta(days=1)
+
+    res = client.post(
+        f"/event-types/{et['id']}/bookings",
+        json={"startTime": slot, "guestName": "Пётр", "guestTimezone": TZ},
+    )
+    assert res.status_code == 201
+
+
 def test_concurrent_booking_same_slot_creates_exactly_one(client):
     """Parallel requests for one slot must yield a single booking (no duplicates)."""
     from concurrent.futures import ThreadPoolExecutor
