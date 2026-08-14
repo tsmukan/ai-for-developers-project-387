@@ -41,7 +41,10 @@ export default function EventTypesAdmin() {
 
   const invalidate = () =>
     queryClient.invalidateQueries({ queryKey: ['owner', 'event-types'] }).then(() =>
-      queryClient.invalidateQueries({ queryKey: ['event-types'] }),
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['event-types'] }),
+        queryClient.invalidateQueries({ queryKey: ['slots'] }),
+      ]),
     )
 
   const saveMutation = useMutation({

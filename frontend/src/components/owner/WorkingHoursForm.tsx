@@ -41,6 +41,7 @@ export default function WorkingHoursForm() {
     mutationFn: (next: WorkingHoursEntry[]) => ownerApi.updateWorkingHours({ entries: next }),
     onSuccess: (data) => {
       queryClient.setQueryData(['owner', 'working-hours'], data)
+      queryClient.invalidateQueries({ queryKey: ['slots'] })
       toast.success('Рабочие часы сохранены')
     },
     onError: (error) =>
@@ -71,11 +72,16 @@ export default function WorkingHoursForm() {
 
   function handleSave() {
     const invalid = (entries ?? []).find(
-      (e) => e.isAvailable && e.startTime >= e.endTime,
+      (e) =>
+        e.isAvailable &&
+        (e.startTime.trim() === '' || e.endTime.trim() === '' || e.startTime >= e.endTime),
     )
     if (invalid) {
+      const label = DAY_OF_WEEK_LABELS[invalid.dayOfWeek]
       toast.error('Проверьте время', {
-        description: `В «${DAY_OF_WEEK_LABELS[invalid.dayOfWeek]}» начало должно быть раньше конца.`,
+        description: invalid.startTime.trim() === '' || invalid.endTime.trim() === ''
+          ? `Укажите начало и конец для «${label}».`
+          : `В «${label}» начало должно быть раньше конца.`,
       })
       return
     }

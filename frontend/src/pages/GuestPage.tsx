@@ -31,7 +31,7 @@ export default function GuestPage() {
   const queryClient = useQueryClient()
   const [timezone, setTimezone] = useState(guessTimezone)
   const [eventType, setEventType] = useState<EventType | null>(null)
-  const [selectedDate, setSelectedDate] = useState(() => todayInTz(guessTimezone()))
+  const [selectedDate, setSelectedDate] = useState(() => todayInTz(timezone))
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null)
   const [confirmed, setConfirmed] = useState<Booking | null>(null)
 
@@ -56,6 +56,7 @@ export default function GuestPage() {
       setConfirmed(booking)
       setSelectedSlot(null)
       queryClient.invalidateQueries({ queryKey: ['slots'] })
+      queryClient.invalidateQueries({ queryKey: ['owner', 'bookings'] })
       toast.success('Запись создана')
     },
     onError: (error) => {
@@ -94,7 +95,6 @@ export default function GuestPage() {
     setEventType(next)
     setSelectedSlot(null)
     setConfirmed(null)
-    // jump to the first day that has something, once slots arrive
   }
 
   function pickSlot(slot: Slot) {
