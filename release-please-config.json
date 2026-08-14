@@ -4,7 +4,7 @@
   "packages": {
     "frontend": {
       "release-type": "node",
-      "package-name": "calendar-booking",
+      "package-name": "frontend",
       "changelog-path": "CHANGELOG.md",
       "bump-minor-pre-major": true,
       "versioning": "default"

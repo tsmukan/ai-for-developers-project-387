@@ -6,6 +6,7 @@ backend/.venv/
 backend/.pytest_cache/
 __pycache__/
 *.pyc
+*.egg-info/
 
 # Playwright artifacts
 frontend/playwright-report/
