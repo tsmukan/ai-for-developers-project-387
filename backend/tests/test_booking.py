@@ -1,11 +1,28 @@
 from __future__ import annotations
 
-from datetime import datetime, time, timedelta
+from datetime import datetime, time, timedelta, timezone
+from unittest.mock import patch
 from zoneinfo import ZoneInfo
 
+import app.business as business
 from conftest import first_event_type, first_slot
 
 TZ = "Europe/Moscow"
+
+# Monday 2026-08-10 05:00 UTC: well before the Moscow workday, so the first
+# available slot is exactly 09:00 in the owner zone regardless of when the
+# test suite runs.
+FIXED_NOW = datetime(2026, 8, 10, 5, 0, tzinfo=timezone.utc)
+
+
+class _FrozenDatetime(datetime):
+    @classmethod
+    def now(cls, tz=None):
+        return FIXED_NOW.astimezone(tz) if tz is not None else FIXED_NOW
+
+
+def _freeze_time():
+    return patch.object(business, "datetime", _FrozenDatetime)
 
 
 def test_list_event_types(client):
@@ -43,27 +60,30 @@ def test_slots_whole_window_by_default(client):
 
 def test_slots_reanchor_to_owner_work_hours_per_guest_zone(client):
     """Working hours live in the owner's zone; guest-zone changes shift the grid."""
-    et = first_event_type(client)
+    with _freeze_time():
+        et = first_event_type(client)
 
-    def first_local(tz: str) -> tuple[datetime, datetime]:
-        res = client.get(f"/event-types/{et['id']}/slots", params={"timezone": tz}).json()["items"]
-        assert res, "expected available slots"
-        start = datetime.fromisoformat(res[0]["startTime"])
-        return start, start.astimezone(ZoneInfo(tz))
+        def first_local(tz: str) -> tuple[datetime, datetime]:
+            res = client.get(
+                f"/event-types/{et['id']}/slots", params={"timezone": tz}
+            ).json()["items"]
+            assert res, "expected available slots"
+            start = datetime.fromisoformat(res[0]["startTime"])
+            return start, start.astimezone(ZoneInfo(tz))
 
-    msk_utc, msk_local = first_local("Europe/Moscow")
-    # owner default workday starts at 09:00 in the owner zone
-    assert msk_local.hour == 9
+        msk_utc, msk_local = first_local("Europe/Moscow")
+        # owner default workday starts at 09:00 in the owner zone
+        assert msk_local.hour == 9
 
-    # every guest zone receives the SAME absolute instants …
-    for tz in ("Asia/Tokyo", "America/New_York", "Europe/London"):
-        utc, local = first_local(tz)
-        assert utc == msk_utc
+        # every guest zone receives the SAME absolute instants …
+        for tz in ("Asia/Tokyo", "America/New_York", "Europe/London"):
+            utc, local = first_local(tz)
+            assert utc == msk_utc
 
-    # … but renders them at a different local hour: the grid shifted.
-    tokyo_utc, tokyo_local = first_local("Asia/Tokyo")
-    assert tokyo_local.hour != msk_local.hour
-    assert tokyo_utc == msk_utc
+        # … but renders them at a different local hour: the grid shifted.
+        tokyo_utc, tokyo_local = first_local("Asia/Tokyo")
+        assert tokyo_local.hour != msk_local.hour
+        assert tokyo_utc == msk_utc
 
 
 def test_slots_fit_guest_window_for_far_zones(client):

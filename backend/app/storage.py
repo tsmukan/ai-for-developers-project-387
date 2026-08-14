@@ -60,7 +60,6 @@ class Storage:
             email="lex@example.com",
             timezone="Europe/Moscow",
         )
-        self.now = lambda: datetime.now(timezone.utc)
 
     # ── Event types ────────────────────────────────────────────────────────
 
