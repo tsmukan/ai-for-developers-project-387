@@ -13,29 +13,25 @@ import {
 } from '@/components/ui/table'
 
 export default function BookingsTable() {
-  const bookingsQuery = useQuery({
-    queryKey: ['owner', 'bookings'],
-    queryFn: () => ownerApi.listBookings(),
-  })
-  const eventTypesQuery = useQuery({
-    queryKey: ['owner', 'event-types'],
-    queryFn: () => ownerApi.listEventTypes(),
-  })
-  const profileQuery = useQuery({
-    queryKey: ['owner', 'profile'],
-    queryFn: () => ownerApi.getProfile(),
+  const query = useQuery({
+    queryKey: ['owner', 'bookings-table'],
+    queryFn: async () => {
+      const [bookings, eventTypes, profile] = await Promise.all([
+        ownerApi.listBookings(),
+        ownerApi.listEventTypes(),
+        ownerApi.getProfile(),
+      ])
+      return { items: bookings.items, eventTypes: eventTypes.items, profile }
+    },
   })
 
-  if (bookingsQuery.isError) {
+  if (query.isError) {
     return (
-      <QueryError
-        message={bookingsQuery.error.message}
-        onRetry={() => bookingsQuery.refetch()}
-      />
+      <QueryError message={query.error.message} onRetry={() => query.refetch()} />
     )
   }
 
-  if (bookingsQuery.isLoading) {
+  if (query.isLoading) {
     return (
       <div className="space-y-2">
         {Array.from({ length: 4 }, (_, i) => (
@@ -45,9 +41,8 @@ export default function BookingsTable() {
     )
   }
 
-  const items = [...(bookingsQuery.data?.items ?? [])].sort((a, b) =>
-    a.startTime.localeCompare(b.startTime),
-  )
+  const { items: data, eventTypes, profile } = query.data!
+  const items = [...data].sort((a, b) => a.startTime.localeCompare(b.startTime))
 
   if (items.length === 0) {
     return (
@@ -57,10 +52,8 @@ export default function BookingsTable() {
     )
   }
 
-  const tz = profileQuery.data?.timezone ?? 'UTC'
-  const titleById = new Map(
-    (eventTypesQuery.data?.items ?? []).map((t) => [t.id, t.title]),
-  )
+  const tz = profile.timezone
+  const titleById = new Map(eventTypes.map((t) => [t.id, t.title]))
 
   return (
     <div className="overflow-hidden rounded-lg border border-border">
