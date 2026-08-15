@@ -12,3 +12,6 @@ __pycache__/
 frontend/playwright-report/
 frontend/test-results/
 frontend/blob-report/
+
+# Lighthouse reports
+frontend/reports/

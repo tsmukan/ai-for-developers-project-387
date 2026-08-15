@@ -1,0 +1,113 @@
+name: lighthouse
+
+# Nightly Lighthouse audit of a production-equivalent local build.
+# Serves API + built frontend from one uvicorn process (same as Railway),
+# then audits the guest page and the owner panel with Lighthouse.
+# Reports are uploaded as an artifact, viewable from the run page.
+
+on:
+  schedule:
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: write # required by actions/upload-artifact
+
+jobs:
+  lighthouse:
+    name: Lighthouse audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: python -m pip install -r requirements.txt
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build frontend (production, same as Dockerfile)
+        working-directory: frontend
+        env:
+          # Empty base URL -> relative API calls, single origin (like Railway).
+          VITE_API_BASE_URL: ""
+        run: npm run build
+
+      - name: Install Chromium for Lighthouse
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+
+      - name: Start backend (serves API + built frontend)
+        working-directory: backend
+        run: |
+          python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 \
+            > /tmp/uvicorn.log 2>&1 &
+          echo $! > /tmp/uvicorn.pid
+          echo "started uvicorn (pid $(cat /tmp/uvicorn.pid))"
+
+      - name: Wait for backend health
+        run: |
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:8000/health > /dev/null; then
+              echo "backend is up"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "backend failed to start"
+          cat /tmp/uvicorn.log
+          exit 1
+
+      - name: Run Lighthouse audits
+        working-directory: frontend
+        run: |
+          export CHROME_PATH=$(node --input-type=commonjs -e "console.log(require('playwright').chromium.executablePath())")
+          mkdir -p reports
+          for spec in "index /" "owner /owner"; do
+            set -- $spec
+            name=$1
+            path=$2
+            echo "==> lighthouse http://127.0.0.1:8000${path}"
+            npx lighthouse "http://127.0.0.1:8000${path}" \
+              --chrome-flags="--headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage" \
+              --output=json,html \
+              --output-path="reports/$name" \
+              --only-categories=performance,accessibility,best-practices,seo
+          done
+
+      - name: Write scores summary
+        working-directory: frontend
+        run: |
+          node --input-type=commonjs -e "
+          const fs = require('fs');
+          const dir = 'reports';
+          const files = fs.readdirSync(dir).filter(f => f.endsWith('.report.json')).sort();
+          const keys = ['performance', 'accessibility', 'best-practices', 'seo'];
+          const rows = files.map(f => {
+            const r = JSON.parse(fs.readFileSync(dir + '/' + f, 'utf8'));
+            return [f.replace('.report.json', ''), keys.map(k => Math.round((r.categories[k]?.score ?? 0) * 100)).join(' | ')];
+          });
+          const out = ['## Lighthouse', '', '| Страница | Perf | A11y | BP | SEO |', '| --- | --- | --- | --- | --- |', ...rows.map(r => '| ' + r.join(' | ') + ' |'), ''];
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, out.join('\n'));
+          "
+
+      - name: Upload Lighthouse reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-reports
+          path: frontend/reports/
+          retention-days: 7
