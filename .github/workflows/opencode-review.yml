@@ -8,11 +8,8 @@ jobs:
   review:
     runs-on: ubuntu-latest
     permissions:
-      id-token: write
-      contents: write
+      contents: read
       pull-requests: write
-      issues: write
-      comments: write
     steps:
       - uses: actions/checkout@v6
         with:
