@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { formatDateTime } from '@/lib/datetime'
+import { formatDateTime, formatTime } from '@/lib/datetime'
 import type { EventType, Slot } from '@/lib/types'
 
 export interface BookingFormValues {
@@ -104,7 +104,7 @@ export default function BookingForm({
       <Button type="submit" data-testid="booking-submit" disabled={isPending} className="w-full sm:w-auto">
         {isPending
           ? 'Записываем…'
-          : `Записаться на ${formatDateTime(slot.startTime, timezone).split(', ')[1]}`}
+          : `Записаться на ${formatTime(slot.startTime, timezone)}`}
       </Button>
     </form>
   )

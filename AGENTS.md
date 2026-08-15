@@ -101,7 +101,7 @@ npm run spec:mock
 
 ### Frontend (`frontend/`)
 - TypeScript + Vite + React
-- shadcn/ui (Radix), Tailwind CSS v4, `@tanstack/react-query`, `react-router-dom`
+- shadcn/ui (Radix), Tailwind CSS v4, `@tanstack/react-query`, `react-router` (v8)
 - Node установлен нативно для Linux через nvm (`$HOME/.nvm`, LTS 24.x).
   НЕ запускать через Windows `node.exe` — под Linux-NPM ставится своя
   подборка нативных биндингов (rolldown). После переключения платформы Vite
@@ -125,18 +125,20 @@ npm run spec:mock
 
 ### Backend (`backend/`)
 - Python + FastAPI, хранение в памяти.
-- Запуск (venv уже есть в `backend/.venv`):
+- Запуск (создать venv, если его ещё нет — он не закоммичен):
   ```
   cd backend
+  python3 -m venv .venv
+  .venv/bin/pip install -e '.[dev]'
   .venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000
   ```
 - Health-check: `GET http://localhost:8000/health`.
 - Тесты: `cd backend && .venv/bin/pytest`
 - CORS разрешён для `http://localhost:5173`.
 
-## Запуск (проверено 09.08.2026)
+## Запуск (проверено 14.08.2026)
 
-- **Бэкенд** (запускать из `backend/`):
+- **Бэкенд** (запускать из `backend/`, venv — см. выше):
   ```
   .venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000
   ```

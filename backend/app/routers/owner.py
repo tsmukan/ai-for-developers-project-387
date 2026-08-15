@@ -17,9 +17,60 @@ from ..storage import Storage
 
 router = APIRouter(prefix="/owner", tags=["owner"])
 
+_DAY_LABELS = {
+    0: "воскресенье",
+    1: "понедельник",
+    2: "вторник",
+    3: "среда",
+    4: "четверг",
+    5: "пятница",
+    6: "суббота",
+}
+
 
 def _missing(detail: str = "Тип события не найден."):
     return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=detail)
+
+
+def _validate_time_string(value: str, day: int) -> None:
+    hh, _, mm = value.partition(":")
+    valid = (
+        hh.isdigit()
+        and mm.isdigit()
+        and 0 <= int(hh) <= 23
+        and 0 <= int(mm) <= 59
+        and value == f"{int(hh):02d}:{int(mm):02d}"
+    )
+    if not valid:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            f"Время «{value}» в {_DAY_LABELS[day]} должно быть в формате HH:MM.",
+        )
+    if int(mm) % 30 != 0:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            f"Время «{value}» в {_DAY_LABELS[day]} должно быть кратно 30 минутам.",
+        )
+
+
+def _validate_working_hours(config: WorkingHoursConfig) -> None:
+    seen: set[int] = set()
+    for entry in config.entries:
+        if entry.dayOfWeek in seen:
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST,
+                f"День {_DAY_LABELS[entry.dayOfWeek]} указан дважды.",
+            )
+        seen.add(entry.dayOfWeek)
+        if not entry.isAvailable:
+            continue
+        for value in (entry.startTime, entry.endTime):
+            _validate_time_string(value, entry.dayOfWeek)
+        if entry.startTime >= entry.endTime:
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST,
+                f"В {_DAY_LABELS[entry.dayOfWeek]} начало должно быть раньше конца.",
+            )
 
 
 # ── Event Types ────────────────────────────────────────────────────────────
@@ -100,6 +151,7 @@ def update_working_hours(
     body: WorkingHoursConfig,
     storage: Storage = Depends(get_storage),
 ):
+    _validate_working_hours(body)
     return storage.set_working_hours(body)
 
 

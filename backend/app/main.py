@@ -1,17 +1,19 @@
 from __future__ import annotations
 
+import json
 import os
 from pathlib import Path
 
 from fastapi import FastAPI, Request
-from fastapi.exceptions import HTTPException
+from fastapi.exceptions import HTTPException, RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
+from .business import BookingError
 from .routers import owner, public
 
-app = FastAPI(title="Calendar Booking", version="0.0.0")
+app = FastAPI(title="Calendar Booking", version="0.1.0")
 
 
 # Contract says errors look like: {"message": ..., "details"?: ...}.
@@ -24,6 +26,22 @@ async def http_exception_handler(_: Request, exc: HTTPException) -> JSONResponse
         else {"message": "Ошибка запроса", "details": exc.detail}
     )
     return JSONResponse(status_code=exc.status_code, content=payload)
+
+
+@app.exception_handler(BookingError)
+async def booking_error_handler(_: Request, exc: BookingError) -> JSONResponse:
+    return JSONResponse(status_code=exc.status_code, content={"message": exc.message})
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(
+    _: Request, exc: RequestValidationError
+) -> JSONResponse:
+    details = json.dumps(exc.errors(), ensure_ascii=False, default=str)
+    return JSONResponse(
+        status_code=422,
+        content={"message": "Некорректные данные запроса", "details": details},
+    )
 
 app.add_middleware(
     CORSMiddleware,

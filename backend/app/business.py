@@ -31,25 +31,38 @@ def _assign(naive: datetime, tz) -> datetime:
     return naive.replace(tzinfo=tz).astimezone(timezone.utc)
 
 
-def _day_bounds(day: date, tz: ZoneInfo) -> tuple[datetime, datetime]:
-    """UTC start/end of the calendar day `day` observed in `tz`."""
-    day_start = _assign(datetime.combine(day, time(0)), tz)
-    return day_start, day_start + timedelta(days=1)
+def _day_bounds(day: date, tz: ZoneInfo) -> datetime:
+    """UTC instant of the start of the calendar day `day` observed in `tz`."""
+    return _assign(datetime.combine(day, time(0)), tz)
 
 
 def list_slots(storage, event_type, timezone_name, date_from: str | None, date_to: str | None) -> SlotsList:
-    owner_tz = ZoneInfo(storage.get_profile().timezone)
-    guest_tz = ZoneInfo(timezone_name)
-    today = datetime.now(guest_tz).date()
+    try:
+        owner_tz = ZoneInfo(storage.get_profile().timezone)
+        guest_tz = ZoneInfo(timezone_name)
+    except Exception:
+        raise BookingError(f"Неизвестный часовой пояс: {timezone_name}", 400)
 
-    start_date = date.fromisoformat(date_from) if date_from else today
-    end_date = date.fromisoformat(date_to) if date_to else today + timedelta(days=BOOKING_WINDOW_DAYS)
+    today = datetime.now(guest_tz).date()
+    window_limit = today + timedelta(days=BOOKING_WINDOW_DAYS)
+
+    try:
+        start_date = date.fromisoformat(date_from) if date_from else today
+        end_date = date.fromisoformat(date_to) if date_to else window_limit
+    except ValueError:
+        raise BookingError("Параметры dateFrom/dateTo должны быть в формате YYYY-MM-DD.", 400)
+
     if start_date > end_date:
         start_date, end_date = end_date, start_date
+    # The booking window is today .. today+14; clamp out-of-range filters.
+    start_date = max(start_date, today)
+    end_date = min(end_date, window_limit)
+    if start_date > end_date:
+        return SlotsList(items=[], timezone=timezone_name)
 
     # Guest-visible window in UTC: midnight of the first day .. midnight after the last.
-    window_start, _ = _day_bounds(start_date, guest_tz)
-    window_end, _ = _day_bounds(end_date + timedelta(days=1), guest_tz)
+    window_start = _day_bounds(start_date, guest_tz)
+    window_end = _day_bounds(end_date + timedelta(days=1), guest_tz)
 
     by_day = {e.dayOfWeek: e for e in storage.get_working_hours().entries}
     duration = timedelta(minutes=event_type.durationInMinutes)

@@ -83,8 +83,6 @@ export const guestApi = {
 export const ownerApi = {
   listEventTypes: () => request<EventTypesList>('/owner/event-types'),
 
-  getEventType: (eventTypeId: Uuid) => request<EventType>(`/owner/event-types/${eventTypeId}`),
-
   createEventType: (body: EventTypeCreate) =>
     request<EventType>('/owner/event-types', {
       method: 'POST',

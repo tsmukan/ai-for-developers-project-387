@@ -1,8 +1,6 @@
 import "@typespec/http";
-import "@typespec/rest";
 
 using TypeSpec.Http;
-using TypeSpec.Rest;
 
 // ============================================================================
 // Aliases & Enums

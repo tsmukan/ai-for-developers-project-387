@@ -5,11 +5,6 @@ export type TimeString = string // "HH:mm"
 export type DateTime = string // ISO 8601 UTC
 export type Uuid = string
 
-export interface ErrorBody {
-  message: string
-  details?: string
-}
-
 // ── EventType ──────────────────────────────────────────────────────────────
 
 export interface EventType {

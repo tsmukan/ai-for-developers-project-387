@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
-from ..business import BookingError, create_booking, list_slots
+from ..business import create_booking, list_slots
 from ..deps import get_storage
 from ..models import Booking, BookingCreate, ErrorBody, EventTypesList, SlotsList
 from ..storage import Storage
@@ -28,7 +28,7 @@ def get_slots(
     storage: Storage = Depends(get_storage),
 ):
     if storage.get_event_type(event_type_id) is None:
-        raise HTTPException(status_code=404, detail="Тип события не найден.")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Тип события не найден.")
     event_type = storage.get_event_type(event_type_id)
     return list_slots(storage, event_type, timezone, dateFrom, dateTo)
 
@@ -36,7 +36,7 @@ def get_slots(
 @router.post(
     "/event-types/{event_type_id}/bookings",
     response_model=Booking,
-    status_code=201,
+    status_code=status.HTTP_201_CREATED,
     responses={
         400: {"model": ErrorBody},
         404: {"model": ErrorBody},
@@ -50,15 +50,12 @@ def create_booking_endpoint(
 ):
     event_type = storage.get_event_type(event_type_id)
     if event_type is None:
-        raise HTTPException(status_code=404, detail="Тип события не найден.")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Тип события не найден.")
 
     if body.startTime.tzinfo is None:
         raise HTTPException(
-            status_code=400,
+            status_code=status.HTTP_400_BAD_REQUEST,
             detail="Время должно быть задано в ISO 8601 с часовым поясом.",
         )
 
-    try:
-        return create_booking(storage, event_type, body)
-    except BookingError as exc:
-        raise HTTPException(status_code=exc.status_code, detail=exc.message)
+    return create_booking(storage, event_type, body)

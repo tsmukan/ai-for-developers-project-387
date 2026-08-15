@@ -3,12 +3,12 @@
   "private": true,
   "scripts": {
     "spec:compile": "tsp compile spec/api.tsp",
-    "spec:mock": "prism mock spec/openapi.yaml"
+    "spec:mock": "prism mock spec/openapi.yaml -p 4000"
   },
   "devDependencies": {
+    "@stoplight/prism-cli": "^5.8.0",
     "@typespec/compiler": "^1.14.0",
     "@typespec/http": "^1.14.0",
-    "@typespec/openapi3": "^1.14.0",
-    "@typespec/rest": "^0.84.0"
+    "@typespec/openapi3": "^1.14.0"
   }
 }

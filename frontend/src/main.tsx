@@ -1,13 +1,20 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { ApiError } from '@/lib/api'
 import './index.css'
 import App from './App.tsx'
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      retry: 1,
+      retry: (failureCount, error) => {
+        // Client/validation errors are deterministic — do not retry 4xx.
+        if (error instanceof ApiError && error.status >= 400 && error.status < 500) {
+          return false
+        }
+        return failureCount < 2
+      },
       refetchOnWindowFocus: false,
       staleTime: 30_000,
     },
