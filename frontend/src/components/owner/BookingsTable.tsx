@@ -15,27 +15,39 @@ import {
 export default function BookingsTable() {
   const bookingsQuery = useQuery({
     queryKey: ['owner', 'bookings'],
-    queryFn: () => ownerApi.listBookings(),
+    queryFn: ({ signal }) => ownerApi.listBookings(signal),
   })
   const eventTypesQuery = useQuery({
     queryKey: ['owner', 'event-types'],
-    queryFn: () => ownerApi.listEventTypes(),
+    queryFn: ({ signal }) => ownerApi.listEventTypes(signal),
   })
   const profileQuery = useQuery({
     queryKey: ['owner', 'profile'],
-    queryFn: () => ownerApi.getProfile(),
+    queryFn: ({ signal }) => ownerApi.getProfile(signal),
   })
 
-  if (bookingsQuery.isError) {
+  const failed = bookingsQuery.isError
+    ? bookingsQuery
+    : eventTypesQuery.isError
+      ? eventTypesQuery
+      : profileQuery.isError
+        ? profileQuery
+        : null
+
+  if (failed) {
     return (
       <QueryError
-        message={bookingsQuery.error.message}
-        onRetry={() => bookingsQuery.refetch()}
+        message={failed.error.message}
+        onRetry={() => failed.refetch()}
       />
     )
   }
 
-  if (bookingsQuery.isLoading) {
+  if (
+    bookingsQuery.isLoading ||
+    eventTypesQuery.isLoading ||
+    profileQuery.isLoading
+  ) {
     return (
       <div className="space-y-2">
         {Array.from({ length: 4 }, (_, i) => (
