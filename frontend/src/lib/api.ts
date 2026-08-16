@@ -36,7 +36,12 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
       headers: { 'Content-Type': 'application/json' },
       ...init,
     })
-  } catch {
+  } catch (error) {
+    // Let request cancellation (AbortSignal) propagate so React Query can
+    // handle it instead of surfacing a misleading "API недоступен" error.
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      throw error
+    }
     throw new ApiError(0, `API недоступен по адресу ${BASE_URL}. Запустите бэкенд или Prism-мок.`)
   }
 
@@ -62,13 +67,14 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 // ── Public (Guest) API ─────────────────────────────────────────────────────
 
 export const guestApi = {
-  listEventTypes: () => request<EventTypesList>('/event-types'),
+  listEventTypes: (signal?: AbortSignal) =>
+    request<EventTypesList>('/event-types', { signal }),
 
-  listSlots: (eventTypeId: Uuid, query: SlotsQuery) => {
+  listSlots: (eventTypeId: Uuid, query: SlotsQuery, signal?: AbortSignal) => {
     const params = new URLSearchParams({ timezone: query.timezone })
     if (query.dateFrom) params.set('dateFrom', query.dateFrom)
     if (query.dateTo) params.set('dateTo', query.dateTo)
-    return request<SlotsList>(`/event-types/${eventTypeId}/slots?${params}`)
+    return request<SlotsList>(`/event-types/${eventTypeId}/slots?${params}`, { signal })
   },
 
   createBooking: (eventTypeId: Uuid, body: BookingCreate) =>
@@ -81,7 +87,8 @@ export const guestApi = {
 // ── Owner API ──────────────────────────────────────────────────────────────
 
 export const ownerApi = {
-  listEventTypes: () => request<EventTypesList>('/owner/event-types'),
+  listEventTypes: (signal?: AbortSignal) =>
+    request<EventTypesList>('/owner/event-types', { signal }),
 
   createEventType: (body: EventTypeCreate) =>
     request<EventType>('/owner/event-types', {
@@ -98,9 +105,11 @@ export const ownerApi = {
   deleteEventType: (eventTypeId: Uuid) =>
     request<void>(`/owner/event-types/${eventTypeId}`, { method: 'DELETE' }),
 
-  listBookings: () => request<BookingsList>('/owner/bookings'),
+  listBookings: (signal?: AbortSignal) =>
+    request<BookingsList>('/owner/bookings', { signal }),
 
-  getWorkingHours: () => request<WorkingHoursConfig>('/owner/settings/working-hours'),
+  getWorkingHours: (signal?: AbortSignal) =>
+    request<WorkingHoursConfig>('/owner/settings/working-hours', { signal }),
 
   updateWorkingHours: (body: WorkingHoursConfig) =>
     request<WorkingHoursConfig>('/owner/settings/working-hours', {
@@ -108,5 +117,6 @@ export const ownerApi = {
       body: JSON.stringify(body),
     }),
 
-  getProfile: () => request<OwnerProfile>('/owner/profile'),
+  getProfile: (signal?: AbortSignal) =>
+    request<OwnerProfile>('/owner/profile', { signal }),
 }

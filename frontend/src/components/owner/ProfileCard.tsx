@@ -6,7 +6,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 export default function ProfileCard() {
   const query = useQuery({
     queryKey: ['owner', 'profile'],
-    queryFn: () => ownerApi.getProfile(),
+    queryFn: ({ signal }) => ownerApi.getProfile(signal),
   })
 
   if (query.isError) {
