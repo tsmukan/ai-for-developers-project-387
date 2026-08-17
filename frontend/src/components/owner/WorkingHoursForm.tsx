@@ -23,7 +23,7 @@ export default function WorkingHoursForm() {
 
   const query = useQuery({
     queryKey: ['owner', 'working-hours'],
-    queryFn: () => ownerApi.getWorkingHours(),
+    queryFn: ({ signal }) => ownerApi.getWorkingHours(signal),
   })
 
   useEffect(() => {

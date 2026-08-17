@@ -37,12 +37,12 @@ export default function GuestPage() {
 
   const eventTypesQuery = useQuery({
     queryKey: ['event-types'],
-    queryFn: () => guestApi.listEventTypes(),
+    queryFn: ({ signal }) => guestApi.listEventTypes(signal),
   })
 
   const slotsQuery = useQuery({
     queryKey: ['slots', eventType?.id, timezone],
-    queryFn: () => guestApi.listSlots(eventType!.id, { timezone }),
+    queryFn: ({ signal }) => guestApi.listSlots(eventType!.id, { timezone }, signal),
     enabled: eventType !== null,
   })
 

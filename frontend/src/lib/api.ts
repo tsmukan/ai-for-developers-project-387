@@ -62,51 +62,60 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 // ── Public (Guest) API ─────────────────────────────────────────────────────
 
 export const guestApi = {
-  listEventTypes: () => request<EventTypesList>('/event-types'),
+  listEventTypes: (signal?: AbortSignal) =>
+    request<EventTypesList>('/event-types', { signal }),
 
-  listSlots: (eventTypeId: Uuid, query: SlotsQuery) => {
+  listSlots: (eventTypeId: Uuid, query: SlotsQuery, signal?: AbortSignal) => {
     const params = new URLSearchParams({ timezone: query.timezone })
     if (query.dateFrom) params.set('dateFrom', query.dateFrom)
     if (query.dateTo) params.set('dateTo', query.dateTo)
-    return request<SlotsList>(`/event-types/${eventTypeId}/slots?${params}`)
+    return request<SlotsList>(`/event-types/${eventTypeId}/slots?${params}`, { signal })
   },
 
-  createBooking: (eventTypeId: Uuid, body: BookingCreate) =>
+  createBooking: (eventTypeId: Uuid, body: BookingCreate, signal?: AbortSignal) =>
     request<Booking>(`/event-types/${eventTypeId}/bookings`, {
       method: 'POST',
       body: JSON.stringify(body),
+      signal,
     }),
 }
 
 // ── Owner API ──────────────────────────────────────────────────────────────
 
 export const ownerApi = {
-  listEventTypes: () => request<EventTypesList>('/owner/event-types'),
+  listEventTypes: (signal?: AbortSignal) =>
+    request<EventTypesList>('/owner/event-types', { signal }),
 
-  createEventType: (body: EventTypeCreate) =>
+  createEventType: (body: EventTypeCreate, signal?: AbortSignal) =>
     request<EventType>('/owner/event-types', {
       method: 'POST',
       body: JSON.stringify(body),
+      signal,
     }),
 
-  updateEventType: (eventTypeId: Uuid, body: EventTypeUpdate) =>
+  updateEventType: (eventTypeId: Uuid, body: EventTypeUpdate, signal?: AbortSignal) =>
     request<EventType>(`/owner/event-types/${eventTypeId}`, {
       method: 'PUT',
       body: JSON.stringify(body),
+      signal,
     }),
 
-  deleteEventType: (eventTypeId: Uuid) =>
-    request<void>(`/owner/event-types/${eventTypeId}`, { method: 'DELETE' }),
+  deleteEventType: (eventTypeId: Uuid, signal?: AbortSignal) =>
+    request<void>(`/owner/event-types/${eventTypeId}`, { method: 'DELETE', signal }),
 
-  listBookings: () => request<BookingsList>('/owner/bookings'),
+  listBookings: (signal?: AbortSignal) =>
+    request<BookingsList>('/owner/bookings', { signal }),
 
-  getWorkingHours: () => request<WorkingHoursConfig>('/owner/settings/working-hours'),
+  getWorkingHours: (signal?: AbortSignal) =>
+    request<WorkingHoursConfig>('/owner/settings/working-hours', { signal }),
 
-  updateWorkingHours: (body: WorkingHoursConfig) =>
+  updateWorkingHours: (body: WorkingHoursConfig, signal?: AbortSignal) =>
     request<WorkingHoursConfig>('/owner/settings/working-hours', {
       method: 'PUT',
       body: JSON.stringify(body),
+      signal,
     }),
 
-  getProfile: () => request<OwnerProfile>('/owner/profile'),
+  getProfile: (signal?: AbortSignal) =>
+    request<OwnerProfile>('/owner/profile', { signal }),
 }
