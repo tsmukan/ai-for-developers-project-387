@@ -4,7 +4,13 @@ import threading
 from datetime import datetime, timezone
 from uuid import uuid4
 
-from .models import EventType, OwnerProfile, WorkingHoursConfig
+from .models import (
+    EventType,
+    EventTypeCreate,
+    EventTypeUpdate,
+    OwnerProfile,
+    WorkingHoursConfig,
+)
 
 DAY_ORDER = [1, 2, 3, 4, 5, 6, 0]  # monday..sunday ordering for defaults
 
@@ -65,26 +71,27 @@ class Storage:
 
     def list_event_types(self) -> list[EventType]:
         with self._lock:
-            return list(self.event_types.values())
+            return [et.model_copy(deep=True) for et in self.event_types.values()]
 
     def get_event_type(self, event_type_id: str) -> EventType | None:
         with self._lock:
-            return self.event_types.get(event_type_id)
+            et = self.event_types.get(event_type_id)
+            return et.model_copy(deep=True) if et is not None else None
 
-    def create_event_type(self, data: dict) -> EventType:
+    def create_event_type(self, data: EventTypeCreate) -> EventType:
         et = EventType(id=str(uuid4()), **data.model_dump())
         with self._lock:
             self.event_types[et.id] = et
-            return et
+            return et.model_copy(deep=True)
 
-    def update_event_type(self, event_type_id: str, data: dict) -> EventType | None:
+    def update_event_type(self, event_type_id: str, data: EventTypeUpdate) -> EventType | None:
         with self._lock:
             et = self.event_types.get(event_type_id)
             if et is None:
                 return None
             merged = et.model_copy(update=data.model_dump(exclude_unset=True))
             self.event_types[event_type_id] = merged
-            return merged
+            return merged.model_copy(deep=True)
 
     def delete_event_type(self, event_type_id: str) -> bool:
         with self._lock:
@@ -123,7 +130,7 @@ class Storage:
 
     def get_working_hours(self) -> WorkingHoursConfig:
         with self._lock:
-            return self.working_hours
+            return self.working_hours.model_copy(deep=True)
 
     def set_working_hours(self, config: WorkingHoursConfig) -> WorkingHoursConfig:
         with self._lock:
@@ -134,7 +141,7 @@ class Storage:
 
     def get_profile(self) -> OwnerProfile:
         with self._lock:
-            return self.profile
+            return self.profile.model_copy(deep=True)
 
     # ── helpers ────────────────────────────────────────────────────────────
 
