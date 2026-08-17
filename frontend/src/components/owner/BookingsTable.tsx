@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { ownerApi } from '@/lib/api'
 import { formatDateTime, toTz } from '@/lib/datetime'
 import QueryError from '@/components/QueryError'
+import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
   Table,
@@ -15,15 +16,15 @@ import {
 export default function BookingsTable() {
   const bookingsQuery = useQuery({
     queryKey: ['owner', 'bookings'],
-    queryFn: () => ownerApi.listBookings(),
+    queryFn: ({ signal }) => ownerApi.listBookings(signal),
   })
   const eventTypesQuery = useQuery({
     queryKey: ['owner', 'event-types'],
-    queryFn: () => ownerApi.listEventTypes(),
+    queryFn: ({ signal }) => ownerApi.listEventTypes(signal),
   })
   const profileQuery = useQuery({
     queryKey: ['owner', 'profile'],
-    queryFn: () => ownerApi.getProfile(),
+    queryFn: ({ signal }) => ownerApi.getProfile(signal),
   })
 
   if (bookingsQuery.isError) {
@@ -45,6 +46,11 @@ export default function BookingsTable() {
     )
   }
 
+  const auxiliaryError =
+    eventTypesQuery.isError || profileQuery.isError
+      ? (eventTypesQuery.error ?? profileQuery.error)
+      : null
+
   const items = [...(bookingsQuery.data?.items ?? [])].sort((a, b) =>
     a.startTime.localeCompare(b.startTime),
   )
@@ -63,41 +69,65 @@ export default function BookingsTable() {
   )
 
   return (
-    <div className="overflow-hidden rounded-lg border border-border">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Время ({tz})</TableHead>
-            <TableHead>Событие</TableHead>
-            <TableHead>Гость</TableHead>
-            <TableHead>Контакты</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {items.map((booking) => (
-            <TableRow key={booking.id} data-testid="booking-row">
-              <TableCell className="font-mono text-sm whitespace-nowrap tabular-nums">
-                {formatDateTime(booking.startTime, tz)} —{' '}
-                {toTz(booking.endTime, tz).format('HH:mm')}
-              </TableCell>
-              <TableCell>{titleById.get(booking.eventTypeId) ?? '—'}</TableCell>
-              <TableCell>
-                <div>{booking.guestName}</div>
-                {booking.guestTimezone !== tz && (
-                  <div className="font-mono text-xs text-muted-foreground">
-                    {booking.guestTimezone}
-                  </div>
-                )}
-              </TableCell>
-              <TableCell className="text-sm text-muted-foreground">
-                {booking.guestEmail && <div>{booking.guestEmail}</div>}
-                {booking.guestPhone && <div>{booking.guestPhone}</div>}
-                {!booking.guestEmail && !booking.guestPhone && '—'}
-              </TableCell>
+    <div className="space-y-4">
+      {auxiliaryError && (
+        <div
+          role="alert"
+          className="flex items-start justify-between gap-4 rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-3"
+        >
+          <p className="text-sm text-muted-foreground">
+            Не удалось загрузить названия событий или часовой пояс:{' '}
+            <span className="text-destructive">{auxiliaryError.message}</span>
+          </p>
+          <Button
+            variant="outline"
+            size="sm"
+            className="shrink-0"
+            onClick={() => {
+              eventTypesQuery.refetch()
+              profileQuery.refetch()
+            }}
+          >
+            Повторить
+          </Button>
+        </div>
+      )}
+      <div className="overflow-hidden rounded-lg border border-border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Время ({tz})</TableHead>
+              <TableHead>Событие</TableHead>
+              <TableHead>Гость</TableHead>
+              <TableHead>Контакты</TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {items.map((booking) => (
+              <TableRow key={booking.id} data-testid="booking-row">
+                <TableCell className="font-mono text-sm whitespace-nowrap tabular-nums">
+                  {formatDateTime(booking.startTime, tz)} —{' '}
+                  {toTz(booking.endTime, tz).format('HH:mm')}
+                </TableCell>
+                <TableCell>{titleById.get(booking.eventTypeId) ?? '—'}</TableCell>
+                <TableCell>
+                  <div>{booking.guestName}</div>
+                  {booking.guestTimezone !== tz && (
+                    <div className="font-mono text-xs text-muted-foreground">
+                      {booking.guestTimezone}
+                    </div>
+                  )}
+                </TableCell>
+                <TableCell className="text-sm text-muted-foreground">
+                  {booking.guestEmail && <div>{booking.guestEmail}</div>}
+                  {booking.guestPhone && <div>{booking.guestPhone}</div>}
+                  {!booking.guestEmail && !booking.guestPhone && '—'}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   )
 }
