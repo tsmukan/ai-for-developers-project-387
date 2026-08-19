@@ -15,6 +15,7 @@ alias Uuid = string;
 // Error model
 // ============================================================================
 
+@error
 model ErrorBody {
   message: string;
   details?: string;

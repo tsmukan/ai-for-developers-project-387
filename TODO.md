@@ -12,28 +12,12 @@ Backend (backend/)
 Качество кода:
 - Брони хранятся как dict, а не Booking — непоследовательная типизация
   (storage.py, business.create_booking).
-- Mis-typed сигнатуры: create_event_type(data: dict) получает Pydantic-модель
-  (storage.py).
 - Дублирование: маппинг дня недели, dict-компрессия working hours,
   слот-вычисления, паттерн 404.
-- Геттеры возвращают живые изменяемые объекты после снятия блокировки — можно
-  мутировать в обход лока.
 
 Frontend (frontend/)
 Проблемы:
-1. next-themes без ThemeProvider — тёмная тема полунастроена (sonner.tsx),
-   dark: классы и CSS-переменные мёртвые.
-2. request() не прокидывает AbortSignal из React Query — отмена запросов не
-   работает.
-3. Нет единого formatter-модуля (форматирование разбросано) и отдельного
-   typecheck-скрипта.
-4. BookingsTable не обрабатывает ошибки eventTypesQuery/profileQuery (молча
-   подставляет «—»/UTC).
-
-Инструменты / инфраструктура
-1. OpenAPI: ErrorBody задокументирован как HTTP 200 (anyOf), а не как 4xx/5xx —
-   нужен @statusCode в spec/api.tsp.
-2. Dockerfile: root-user, unpinned базовые образы.
+- Нет единого formatter-модуля (форматирование разбросано).
 
 ## Новые фичи (план)
 
