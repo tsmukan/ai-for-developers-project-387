@@ -36,7 +36,7 @@ export default function EventTypesAdmin() {
 
   const query = useQuery({
     queryKey: ['owner', 'event-types'],
-    queryFn: () => ownerApi.listEventTypes(),
+    queryFn: ({ signal }) => ownerApi.listEventTypes(signal),
   })
 
   const invalidate = () =>
