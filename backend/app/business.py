@@ -4,7 +4,7 @@ from datetime import date, datetime, time, timedelta, timezone
 from uuid import uuid4
 from zoneinfo import ZoneInfo
 
-from .models import BookingCreate, SlotsList
+from .models import Booking, BookingCreate, SlotsList
 
 GRID_MINUTES = 30
 BOOKING_WINDOW_DAYS = 14
@@ -99,8 +99,8 @@ def list_slots(storage, event_type, timezone_name, date_from: str | None, date_t
     return SlotsList(items=items, timezone=timezone_name)
 
 
-def create_booking(storage, event_type, body: BookingCreate) -> dict:
-    """Returns a booking dict, or raises BookingError on validation failure."""
+def create_booking(storage, event_type, body: BookingCreate) -> Booking:
+    """Returns a booking, or raises BookingError on validation failure."""
     start = body.startTime
     duration = timedelta(minutes=event_type.durationInMinutes)
     end = start + duration
@@ -135,17 +135,17 @@ def create_booking(storage, event_type, body: BookingCreate) -> dict:
     if start < w_start or end > w_end:
         raise BookingError("Встреча выходит за пределы рабочего времени.", 400)
 
-    booking = {
-        "id": str(uuid4()),
-        "eventTypeId": event_type.id,
-        "startTime": start.astimezone(timezone.utc),
-        "endTime": end.astimezone(timezone.utc),
-        "guestName": body.guestName,
-        "guestEmail": body.guestEmail,
-        "guestPhone": body.guestPhone,
-        "guestTimezone": body.guestTimezone,
-        "createdAt": datetime.now(timezone.utc),
-    }
+    booking = Booking(
+        id=str(uuid4()),
+        eventTypeId=event_type.id,
+        startTime=start.astimezone(timezone.utc),
+        endTime=end.astimezone(timezone.utc),
+        guestName=body.guestName,
+        guestEmail=body.guestEmail,
+        guestPhone=body.guestPhone,
+        guestTimezone=body.guestTimezone,
+        createdAt=datetime.now(timezone.utc),
+    )
     if not storage.try_add_booking(start, end, booking):
         raise BookingError("Это время уже занято.", 409)
 

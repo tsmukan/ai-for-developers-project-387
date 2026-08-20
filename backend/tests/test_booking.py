@@ -5,6 +5,7 @@ from unittest.mock import patch
 from zoneinfo import ZoneInfo
 
 import app.business as business
+from app.models import Booking
 from conftest import first_event_type, first_slot
 
 TZ = "Europe/Moscow"
@@ -260,17 +261,15 @@ def test_expired_bookings_pruned_from_storage(client):
 
     now = datetime.now(timezone.utc)
     storage.bookings.append(
-        {
-            "id": "past-1",
-            "eventTypeId": "x",
-            "startTime": now - timedelta(days=2),
-            "endTime": now - timedelta(days=1),
-            "guestName": "Старый",
-            "guestEmail": None,
-            "guestPhone": None,
-            "guestTimezone": TZ,
-            "createdAt": now - timedelta(days=2),
-        }
+        Booking(
+            id="past-1",
+            eventTypeId="x",
+            startTime=now - timedelta(days=2),
+            endTime=now - timedelta(days=1),
+            guestName="Старый",
+            guestTimezone=TZ,
+            createdAt=now - timedelta(days=2),
+        )
     )
     assert len(storage.bookings) == 1
 
@@ -294,8 +293,8 @@ def test_pruned_booking_does_not_block_new_booking(client):
 
     now = datetime.now(timezone.utc)
     for b in storage.bookings:
-        b["startTime"] = now - timedelta(days=2)
-        b["endTime"] = now - timedelta(days=1)
+        b.startTime = now - timedelta(days=2)
+        b.endTime = now - timedelta(days=1)
 
     res = client.post(
         f"/event-types/{et['id']}/bookings",
