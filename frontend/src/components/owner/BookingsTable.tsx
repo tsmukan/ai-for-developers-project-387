@@ -15,15 +15,15 @@ import {
 export default function BookingsTable() {
   const bookingsQuery = useQuery({
     queryKey: ['owner', 'bookings'],
-    queryFn: () => ownerApi.listBookings(),
+    queryFn: ({ signal }) => ownerApi.listBookings(signal),
   })
   const eventTypesQuery = useQuery({
     queryKey: ['owner', 'event-types'],
-    queryFn: () => ownerApi.listEventTypes(),
+    queryFn: ({ signal }) => ownerApi.listEventTypes(signal),
   })
   const profileQuery = useQuery({
     queryKey: ['owner', 'profile'],
-    queryFn: () => ownerApi.getProfile(),
+    queryFn: ({ signal }) => ownerApi.getProfile(signal),
   })
 
   if (bookingsQuery.isError) {
@@ -45,6 +45,8 @@ export default function BookingsTable() {
     )
   }
 
+  const auxiliaryError = eventTypesQuery.isError || profileQuery.isError
+
   const items = [...(bookingsQuery.data?.items ?? [])].sort((a, b) =>
     a.startTime.localeCompare(b.startTime),
   )
@@ -63,8 +65,18 @@ export default function BookingsTable() {
   )
 
   return (
-    <div className="overflow-hidden rounded-lg border border-border">
-      <Table>
+    <div className="space-y-3">
+      {auxiliaryError && (
+        <p
+          role="alert"
+          className="rounded-lg border border-border bg-muted/50 px-4 py-2 text-sm text-muted-foreground"
+        >
+          Не удалось загрузить названия событий и часовой пояс — в таблице
+          показаны резервные значения.
+        </p>
+      )}
+      <div className="overflow-hidden rounded-lg border border-border">
+        <Table>
         <TableHeader>
           <TableRow>
             <TableHead>Время ({tz})</TableHead>
@@ -98,6 +110,7 @@ export default function BookingsTable() {
           ))}
         </TableBody>
       </Table>
+      </div>
     </div>
   )
 }
