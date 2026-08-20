@@ -53,3 +53,36 @@ def test_bookings_list(client):
     body = res.json()
     assert body["total"] == 1
     assert body["items"][0]["guestName"] == "Иван"
+
+
+def test_delete_event_type_removes_its_bookings(client):
+    et = client.post(
+        "/owner/event-types",
+        json={"title": "Zoom", "description": "d", "durationInMinutes": 30},
+    ).json()
+    slot = first_slot(client, et["id"])
+    client.post(
+        f"/event-types/{et['id']}/bookings",
+        json={"startTime": slot, "guestName": "Иван", "guestTimezone": "Europe/Moscow"},
+    )
+    assert client.get("/owner/bookings").json()["total"] == 1
+
+    deleted = client.delete(f"/owner/event-types/{et['id']}")
+    assert deleted.status_code == 204
+    assert client.get("/owner/bookings").json()["total"] == 0
+
+
+def test_getters_return_copies_not_live_objects(client):
+    from app.deps import storage
+
+    profile = storage.get_profile()
+    profile.name = "Мутант"
+    assert storage.get_profile().name != "Мутант"
+
+    working_hours = storage.get_working_hours()
+    working_hours.entries[0].isAvailable = False
+    assert storage.get_working_hours().entries[0].isAvailable is True
+
+    event_type = storage.get_event_type(next(iter(storage.event_types)))
+    event_type.title = "Мутант"
+    assert all(et.title != "Мутант" for et in storage.list_event_types())

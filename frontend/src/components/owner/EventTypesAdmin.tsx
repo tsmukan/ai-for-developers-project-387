@@ -154,7 +154,7 @@ export default function EventTypesAdmin() {
             <DialogTitle>Удалить «{deleting?.title}»?</DialogTitle>
             <DialogDescription>
               Гости больше не смогут записываться на этот тип события. Существующие
-              брони не отменяются.
+              брони этого типа будут удалены.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
