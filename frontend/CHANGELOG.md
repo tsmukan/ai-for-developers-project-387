@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.1](https://github.com/tsmukan/ai-for-developers-project-387/compare/frontend-v1.0.0...frontend-v1.0.1) (2026-08-20)
+
+
+### Bug Fixes
+
+* мелкие баги и чистка TODO.md ([c2ce32f](https://github.com/tsmukan/ai-for-developers-project-387/commit/c2ce32f64a4944b59cf67c384dbd9beee858fc33))
+
 ## 1.0.0 (2026-08-15)
 
 
